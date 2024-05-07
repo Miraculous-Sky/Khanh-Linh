@@ -1,29 +1,16 @@
 package manager;
 
+import database.InMemoryDB;
 import model.Claim;
 
-import java.util.List;
+import java.util.SortedSet;
 
 public class ClaimProcessManagerImpl implements ClaimProcessManager {
-    private final List<Claim> claims;
-
-    public ClaimProcessManagerImpl(List<Claim> claimList) {
-        this.claims = claimList;
-    }
+    private final SortedSet<Claim> claims = InMemoryDB.getInstance().getClaims();
 
     @Override
     public boolean add(Claim claim) {
-        if (claims.contains(claim)) {
-            return false;
-        }
-        for (int i = 0; i < claims.size(); i++) {
-            if (claims.get(i).compareTo(claim) > 0) {
-                claims.add(i, claim);
-                return true;
-            }
-        }
-        claims.add(claim);
-        return true;
+        return claims.add(claim);
     }
 
     @Override
@@ -47,7 +34,7 @@ public class ClaimProcessManagerImpl implements ClaimProcessManager {
     }
 
     @Override
-    public List<Claim> getAll() {
+    public SortedSet<Claim> getAll() {
         return claims;
     }
 }

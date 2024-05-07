@@ -1,15 +1,14 @@
-import database.InMemoryDB;
-import model.PolicyHolder;
-import utils.FileProcessing;
+import utils.fileProcessing.CsvFileProcessing;
+import utils.fileProcessing.FileProcessing;
 import view.CLI;
 
 public class Main {
     public static void main(String[] args) {
-        InMemoryDB database = InMemoryDB.getInstance();
-        FileProcessing fileProcessing = new FileProcessing();
-        fileProcessing.readCustomerFile();
-        fileProcessing.readInsuranceCard();
-        fileProcessing.readClaim();
+        FileProcessing fileProcessing = new CsvFileProcessing();
+        fileProcessing.readCustomers();
+        fileProcessing.readInsuranceCards();
+        fileProcessing.readClaims();
+
         new CLI().start();
     }
 }

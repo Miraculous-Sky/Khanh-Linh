@@ -1,10 +1,11 @@
 package model;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class PolicyHolder extends Customer {
-    private final Set<Customer> dependents = new HashSet<>();
+    private final SortedSet<Customer> dependents = new TreeSet<>();
 
     public PolicyHolder(String customerID, String fullName) {
         super(customerID, fullName);
