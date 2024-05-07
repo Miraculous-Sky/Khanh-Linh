@@ -16,24 +16,24 @@ You are developing an insurance claims management system. This system enables us
 - Insurance card
 - A list of claims
 
-Each customer can be either a policy holder or a dependent. No general customer can exist in the system. For a policy holder, there will be a list of his/her dependents.
+Each customer can be either a policyholder or a dependent. No general customer can exist in the system. For a policyholder, there will be a list of his/her dependents.
 
-An insurance card contains card number (10 digits), card holder, policy owner (String), and an expiration date (Note that one card can only have one holder).
+An insurance card contains card number (10 digits), cardholder, policy owner (String), and an expiration date (Note that one card can only have one holder).
 
 A claim contains the following information:
 - id (with the format f-numbers; 10 numbers)
-- model.Claim date
+- Claim date
 - Insured person
 - Card number
 - Exam date
 - List of documents (with the format ClaimId_CardNumber_DocumentName.pdf)
-- model.Claim amount
-- model.Status (New, Processing, Done)
+- Claim amount
+- Status (New, Processing, Done)
 - Receiver Banking Info (Bank – Name – Number)
 
 All the dates in the system must be represented using Date object.
 
-You must define an interface manager.ClaimProcessManager to take care of the claim lists. This interface must have the following operations: add, update, delete, getOne, getAll.
+You must define an interface ClaimProcessManager to take care of the claim lists. This interface must have the following operations: add, update, delete, getOne, getAll.
 
 Design and implement the necessary operations for the system. Remember that all the entities must be able to be displayed in some sorted some orders, and also, allow to save these reports to text files.
 

@@ -2,7 +2,7 @@ package manager;
 
 import model.Claim;
 
-import java.util.List;
+import java.util.SortedSet;
 
 public interface ClaimProcessManager {
     boolean add(Claim claim);
@@ -13,5 +13,5 @@ public interface ClaimProcessManager {
 
     Claim getOne(String id);
 
-    List<Claim> getAll();
+    SortedSet<Claim> getAll();
 }

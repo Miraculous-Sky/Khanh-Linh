@@ -1,14 +1,13 @@
 package model;
 
-import utils.Utils;
+import utils.Converter;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.SortedSet;
 
 public class Claim implements Comparable<Claim> {
-    private final List<String> documents = new ArrayList<>(); //(with the format ClaimId_CardNumber_DocumentName.pdf)
-    private String id; //(with the format f-numbers; 10 numbers)
+    private final SortedSet<String> documents; //(with the format ClaimId_CardNumber_DocumentName.pdf)
+    private final String id; //(with the format f-numbers; 10 numbers)
     private Date claimDate;
     private Customer insuredPerson;
     private String cardNumber;
@@ -17,11 +16,8 @@ public class Claim implements Comparable<Claim> {
     private Status status; // (New, Processing, Done)
     private String receiverBankingInfo; //(Bank-Name-Number)
 
-    public Claim(String id) {
-        this.id = id;
-    }
-
-    public Claim(String id, Date claimDate, Customer insuredPerson, String cardNumber, Date examDate, double claimAmount, Status status, String receiverBankingInfo) {
+    public Claim(String id, Date claimDate, Customer insuredPerson, String cardNumber, Date examDate, SortedSet<String> documents, double claimAmount, Status status, String receiverBankingInfo) {
+        this.documents = documents;
         this.id = id;
         this.claimDate = claimDate;
         this.insuredPerson = insuredPerson;
@@ -68,7 +64,7 @@ public class Claim implements Comparable<Claim> {
         this.examDate = examDate;
     }
 
-    public List<String> getDocuments() {
+    public SortedSet<String> getDocuments() {
         return documents;
     }
 
@@ -104,10 +100,10 @@ public class Claim implements Comparable<Claim> {
     public String toString() {
         return "model.Claim{" +
                 "id= " + id +
-                ", claimDate= " + Utils.formatDate(claimDate) +
+                ", claimDate= " + Converter.formatDate(claimDate) +
                 ", insuredPerson= " + insuredPerson.getFullName() +
                 ", cardNumber= " + cardNumber +
-                ", examDate= " + Utils.formatDate(examDate) +
+                ", examDate= " + Converter.formatDate(examDate) +
                 ", documents= " + documents +
                 ", claimAmount= " + claimAmount +
                 ", status= " + status +

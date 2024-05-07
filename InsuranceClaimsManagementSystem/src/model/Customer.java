@@ -1,10 +1,11 @@
 package model;
 
-import java.util.ArrayList;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public abstract class Customer implements Comparable<Customer> {
-    private final ArrayList<Claim> claims = new ArrayList<>();
-    private String customerID; //(with the format c-numbers; 7 numbers) ;
+    private final SortedSet<Claim> claims = new TreeSet<>();
+    private final String customerID; //(with the format c-numbers; 7 numbers) ;
     private String fullName;
     private InsuranceCard insuranceCard;
 
@@ -33,7 +34,7 @@ public abstract class Customer implements Comparable<Customer> {
         this.insuranceCard = insuranceCard;
     }
 
-    public ArrayList<Claim> getClaims() {
+    public SortedSet<Claim> getClaims() {
         return claims;
     }
 

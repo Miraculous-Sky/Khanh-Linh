@@ -1,11 +1,11 @@
 package model;
 
-import utils.Utils;
+import utils.Converter;
 
 import java.util.Date;
 
 public class InsuranceCard implements Comparable<InsuranceCard> {
-    private String cardNumber; //10 digits
+    private final String cardNumber; //10 digits
     private Customer cardHolder;
     private String policyOwner;
     private Date expirationDate;
@@ -65,7 +65,7 @@ public class InsuranceCard implements Comparable<InsuranceCard> {
                 "cardNumber=" + cardNumber +
                 ", cardHolder=" + cardHolder.getCustomerID() +
                 ", policyOwner=" + policyOwner +
-                ", expirationDate=" + Utils.formatDate(expirationDate) +
+                ", expirationDate=" + Converter.formatDate(expirationDate) +
                 '}';
     }
 
