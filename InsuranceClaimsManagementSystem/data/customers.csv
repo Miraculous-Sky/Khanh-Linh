@@ -1,0 +1,31 @@
+id,fullName,type,policyHolderId
+c-0000001,John Doe,H,
+c-0000002,Diana Prince,H,
+c-0000003,Bruce Wayne,H,
+c-0000004,Erik Killmonger,H,
+c-0000005,Steve Rogers,D,c-0000002
+c-0000006,Natasha Romanoff,D,c-0000002
+c-0000007,Thor Odinson,H,
+c-0000008,T'Challa,H,
+c-0000009,Carol Danvers,H,
+c-0000010,Clark Kent,D,c-0000007
+c-0000011,Peter Parker,D,c-0000003
+c-0000012,Tony Stark,D,c-0000003
+c-0000013,Hope Van Dyne,D,c-0000008
+c-0000014,Bruce Banner,H,
+c-0000015,Wanda Maximoff,D,c-0000001
+c-0000016,Scott Lang,H,
+c-0000017,M'Baku,H,
+c-0000018,Peter Quill,D,c-0000009
+c-0000019,Shuri,D,c-0000008
+c-0000020,Loki Laufeyson,D,c-0000014
+c-0000021,Okoye,D,c-0000017
+c-0000022,Stephen Strange,D,c-0000007
+c-0000023,Charlie Brown,D,c-0000003
+c-0000024,Harry Potter,H,
+c-0000025,Bob Johnson,H,
+c-0000026,Alice Johnson,D,c-0000024
+c-0000027,Everett Ross,D,c-0000016
+c-0000028,Thaddeus Ross,H,
+c-0000029,Nakia,D,c-0000025
+c-0000030,Vision,D,c-0000003
