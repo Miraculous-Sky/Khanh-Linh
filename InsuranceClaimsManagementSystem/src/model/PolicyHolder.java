@@ -1,5 +1,7 @@
 package model;
 
+import conf.SystemConfig;
+
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -25,4 +27,10 @@ public class PolicyHolder extends Customer {
     }
 
 
+    @Override
+    public String format() {
+        return getCustomerID() + SystemConfig.CSV_DELIMITER +
+                getFullName() + SystemConfig.CSV_DELIMITER +
+                "H";
+    }
 }

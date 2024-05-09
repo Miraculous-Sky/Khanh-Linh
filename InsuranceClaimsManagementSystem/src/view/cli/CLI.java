@@ -1,15 +1,14 @@
-package view;
+package view.cli;
 
 import conf.SystemConfig;
-import manager.ClaimProcessManager;
-import manager.ClaimProcessManagerImpl;
-import manager.CustomerManagerImpl;
 import model.Claim;
 import model.Customer;
 import model.Status;
+import service.ClaimService;
+import service.CustomerService;
 import utils.Converter;
-import utils.validation.ClaimValidation;
-import utils.validation.CustomerValidation;
+import utils.InputHelper;
+import utils.Validation;
 
 import java.util.Date;
 import java.util.Scanner;
@@ -19,35 +18,27 @@ import java.util.TreeSet;
 // TODO: review whole class
 public class CLI {
     private final Scanner scanner = new Scanner(System.in);
-    private final ClaimProcessManager claimProcessManager = new ClaimProcessManagerImpl();
-    private final CustomerManagerImpl customerManager = new CustomerManagerImpl();
+    private final CustomerService customerService;
+    private final ClaimService claimService;
+    private final CommandFactory commandFactory;
+
+    public CLI(CustomerService customerService, ClaimService claimService, CommandFactory commandFactory) {
+        this.customerService = customerService;
+        this.claimService = claimService;
+        this.commandFactory = commandFactory;
+    }
 
     public void start() {
-        displayMenu();
         while (true) {
-            int choice = getInt("Select an option: ", 1, 6);
-            switch (choice) {
-                case 1:
-                    handleAddClaim();
-                    break;
-                case 2:
-                    handleUpdateClaim();
-                    break;
-                case 3:
-                    handleDeleteClaim();
-                    break;
-                case 4:
-                    handleGetOneClaim();
-                    break;
-                case 5:
-                    handleGetAllClaims();
-                    break;
-                case 6:
-                    System.out.println("Exiting...");
-                    return;  // Exit the application
-                default:
-                    System.out.println("Invalid option. Please try again.");
+            displayMenu();
+            int choice = InputHelper.getInt("Select an option: ", 0, 5);
+            if (choice == 0) {
+                System.out.println("Exiting...");
+                break;
             }
+            CommandKey commandKey = CommandKey.values()[choice - 1];
+            Command command = commandFactory.getCommand(commandKey);
+            if (command != null) command.execute();
         }
     }
 
@@ -59,24 +50,7 @@ public class CLI {
         System.out.println("3. Delete Claim");
         System.out.println("4. Get One Claim");
         System.out.println("5. Get All Claims");
-        System.out.println("6. Exit");
-    }
-
-    private int getInt(String msg, int min, int max) {
-        System.out.print(msg);
-        int result;
-        while (true) {
-            try {
-                result = Integer.parseInt(scanner.nextLine());
-                if (result > max || result < min) {
-                    System.out.printf("Your number must be in range [%d-%d], try again: ", min, max);
-                    continue;
-                }
-                return result;
-            } catch (NumberFormatException e) {
-                System.out.print("You must type a number, try again: ");
-            }
-        }
+        System.out.println("0. Exit");
     }
 
     private void handleAddClaim() {
@@ -87,7 +61,7 @@ public class CLI {
 
         System.out.println("Enter the claim amount: ");
         double claimAmount = Converter.parseDouble(scanner.nextLine());
-        while (ClaimValidation.isInvalidAmount(claimAmount)) {
+        while (Validation.isInvalidAmount(claimAmount)) {
             System.out.println("Invalid amount, try again: ");
             claimAmount = Converter.parseDouble(scanner.nextLine());
         }
@@ -97,14 +71,14 @@ public class CLI {
 
         Claim claim = new Claim(claimId, claimDate, insuredPerson, insuredPerson.getInsuranceCard().getCardNumber(),
                 null, documents, claimAmount, status, receiverBankingInfo);  // Exam date to be set
-        claimProcessManager.add(claim);
+        claimService.add(claim);
         System.out.println("Claim added successfully: " + claim);
     }
 
     private String promptNewClaimId() {
         System.out.print("Enter claim ID (format f-xxxxxxxxxx): ");
         String claimId = scanner.nextLine();
-        while (ClaimValidation.isInvalidId(claimId) || claimProcessManager.getOne(claimId) != null) {
+        while (Validation.isInvalidClaimId(claimId) || claimService.getOne(claimId) != null) {
             System.out.println("This claim ID is not valid or already exists. Please try another: ");
             claimId = scanner.nextLine();
         }
@@ -127,8 +101,8 @@ public class CLI {
         System.out.print(prompt);
         String customerId = scanner.nextLine();
         Customer customer;
-        while (CustomerValidation.isInvalidId(customerId) ||
-                (customer = customerManager.getOne(customerId)) == null) {
+        while (CustomerValidation.isInvalidCustomerId(customerId) ||
+                (customer = customerService.getOne(customerId)) == null) {
             System.out.println("Invalid ID or no customer found. Please try again: ");
             customerId = scanner.nextLine();
         }
@@ -173,15 +147,15 @@ public class CLI {
         System.out.println("Updating a claim...");
         System.out.print("Enter Claim ID (format f-xxxxxxxxxx): ");
         String claimId = scanner.nextLine();
-        Claim existingClaim = claimProcessManager.getOne(claimId);
+        Claim existingClaim = claimService.getOne(claimId);
         while (existingClaim == null) {
             System.out.println("No claim found with ID: " + claimId + ". Please try again:");
             claimId = scanner.nextLine();
-            existingClaim = claimProcessManager.getOne(claimId);
+            existingClaim = claimService.getOne(claimId);
         }
 
         updateClaimDetails(existingClaim);
-        claimProcessManager.update(existingClaim);
+        claimService.update(existingClaim);
         System.out.println("Claim updated successfully: " + existingClaim);
     }
 
@@ -194,11 +168,11 @@ public class CLI {
         System.out.print("Enter new insured person ID (format c-xxxxxxx) or press enter to keep current: ");
         String newCustomerId = scanner.nextLine();
         if (!newCustomerId.isEmpty()) {
-            Customer newCustomer = customerManager.getOne(newCustomerId);
+            Customer newCustomer = customerService.getOne(newCustomerId);
             while (newCustomer == null) {
                 System.out.println("No customer found with ID: " + newCustomerId + ". Please try again:");
                 newCustomerId = scanner.nextLine();
-                newCustomer = customerManager.getOne(newCustomerId);
+                newCustomer = customerService.getOne(newCustomerId);
             }
             claim.setInsuredPerson(newCustomer);
         }
@@ -233,9 +207,9 @@ public class CLI {
         System.out.println("Deleting a claim...");
         System.out.print("Enter Claim ID to delete (format f-xxxxxxxxxx): ");
         String claimId = scanner.nextLine();
-        Claim claimToDelete = claimProcessManager.getOne(claimId);
+        Claim claimToDelete = claimService.getOne(claimId);
         if (claimToDelete != null) {
-            claimProcessManager.delete(claimToDelete);
+            claimService.delete(claimToDelete);
             System.out.println("Claim deleted successfully.");
         } else {
             System.out.println("No claim found with ID: " + claimId + ". Please try again.");
@@ -245,7 +219,7 @@ public class CLI {
     private void handleGetOneClaim() {
         System.out.print("Enter Claim ID to view (format f-xxxxxxxxxx): ");
         String claimId = scanner.nextLine();
-        Claim claim = claimProcessManager.getOne(claimId);
+        Claim claim = claimService.getOne(claimId);
         if (claim != null) {
             System.out.println("Claim details: " + claim);
         } else {
@@ -255,7 +229,7 @@ public class CLI {
 
     private void handleGetAllClaims() {
         System.out.println("All Claims: ");
-        SortedSet<Claim> allClaims = claimProcessManager.getAll();
+        SortedSet<Claim> allClaims = claimService.getAll();
         for (Claim claim : allClaims) {
             System.out.println(claim);
         }

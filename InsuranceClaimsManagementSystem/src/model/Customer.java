@@ -3,7 +3,7 @@ package model;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public abstract class Customer implements Comparable<Customer> {
+public abstract class Customer implements Formattable, Comparable<Customer>, Identifiable {
     private final SortedSet<Claim> claims = new TreeSet<>();
     private final String customerID; //(with the format c-numbers; 7 numbers) ;
     private String fullName;
@@ -59,5 +59,10 @@ public abstract class Customer implements Comparable<Customer> {
     @Override
     public int compareTo(Customer o) {
         return this.customerID.compareTo(o.customerID);
+    }
+
+    @Override
+    public String getIdentifier() {
+        return this.customerID;
     }
 }

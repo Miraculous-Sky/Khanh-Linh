@@ -1,10 +1,11 @@
 package model;
 
+import conf.SystemConfig;
 import utils.Converter;
 
 import java.util.Date;
 
-public class InsuranceCard implements Comparable<InsuranceCard> {
+public class InsuranceCard implements Identifiable, Formattable, Comparable<InsuranceCard> {
     private final String cardNumber; //10 digits
     private Customer cardHolder;
     private String policyOwner;
@@ -13,6 +14,7 @@ public class InsuranceCard implements Comparable<InsuranceCard> {
     public InsuranceCard(String cardNumber, Customer cardHolder, String policyOwner, Date expirationDate) {
         this.cardNumber = cardNumber;
         this.cardHolder = cardHolder;
+        this.cardHolder.setInsuranceCard(this);
         this.policyOwner = policyOwner;
         this.expirationDate = expirationDate;
     }
@@ -27,6 +29,7 @@ public class InsuranceCard implements Comparable<InsuranceCard> {
 
     public void setCardHolder(Customer cardHolder) {
         this.cardHolder = cardHolder;
+        this.cardHolder.setInsuranceCard(this);
     }
 
     public String getPolicyOwner() {
@@ -72,5 +75,18 @@ public class InsuranceCard implements Comparable<InsuranceCard> {
     @Override
     public int compareTo(InsuranceCard o) {
         return this.cardNumber.compareTo(o.cardNumber);
+    }
+
+    @Override
+    public String format() {
+        return cardNumber + SystemConfig.CSV_DELIMITER +
+                cardHolder.getCustomerID() + SystemConfig.CSV_DELIMITER +
+                policyOwner + SystemConfig.CSV_DELIMITER +
+                Converter.formatDate(expirationDate);
+    }
+
+    @Override
+    public String getIdentifier() {
+        return this.cardNumber;
     }
 }
