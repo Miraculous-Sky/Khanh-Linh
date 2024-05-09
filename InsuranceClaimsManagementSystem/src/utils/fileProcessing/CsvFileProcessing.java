@@ -1,291 +1,235 @@
 package utils.fileProcessing;
 
+
 import conf.SystemConfig;
-import manager.CardManagerImpl;
-import manager.ClaimProcessManager;
-import manager.ClaimProcessManagerImpl;
-import manager.CustomerManagerImpl;
+import model.Formattable;
 import model.*;
+import service.CardService;
+import service.ClaimService;
+import service.CustomerService;
 import utils.Converter;
-import utils.validation.CardValidation;
-import utils.validation.ClaimValidation;
-import utils.validation.CustomerValidation;
+import utils.Validation;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.BiFunction;
 
 public class CsvFileProcessing implements FileProcessing {
-    CustomerManagerImpl customerManager = new CustomerManagerImpl();
-    CardManagerImpl cardManager = new CardManagerImpl();
-    ClaimProcessManager claimProcessManager = new ClaimProcessManagerImpl();
+    private final CustomerService customerService;
+    private final CardService cardService;
+    private final ClaimService claimService;
 
-    private static SortedSet<String> getDocs(String[] data, String cardNumber) {
-        SortedSet<String> docs = new TreeSet<>();
-        String[] splitDocs = data[4].split(SystemConfig.LIST_DELIMITER);
-        for (String document : splitDocs) {
-            // Regex to match "ClaimId_CardNumber_DocumentName.pdf"
-            if (document.matches(data[0] + "_" + cardNumber + "_[\\w\\s]+\\.pdf")) {
-                docs.add(document);
-            } else if (document.toLowerCase().endsWith(".pdf")) {  // Only include if it's a PDF file
-                // If document doesn't fit the format but is a PDF, format it correctly:
-                String correctedDocument = data[0] + "_" + cardNumber + "_" + document;
-                docs.add(correctedDocument);
-            }
-        }
-        return docs;
+    public CsvFileProcessing(CustomerService customerService, CardService cardService, ClaimService claimService) {
+        this.customerService = customerService;
+        this.cardService = cardService;
+        this.claimService = claimService;
     }
 
     @Override
-    public boolean readCustomers() {
-        return readCustomers(new ArrayList<>());
+    public List<String> loadFiles() {
+        List<String> logs = new ArrayList<>();
+        readEntities(SystemConfig.CUSTOMERS_CSV_PATH, this::parseAndAddCustomer, logs);
+        readEntities(SystemConfig.CARDS_CSV_PATH, this::parseAndAddCard, logs);
+        readEntities(SystemConfig.CLAIMS_CSV_PATH, this::parseAndAddClaim, logs);
+        return logs;
     }
 
-    @Override
-    public boolean readInsuranceCards() {
-        return readInsuranceCards(new ArrayList<>());
-    }
-
-    @Override
-    public boolean readClaims() {
-        return readClaims(new ArrayList<>());
-    }
-
-    @Override
-    public boolean writeToFiles() {
-        return writeToFiles(new ArrayList<>());
-    }
-
-    @Override
-    public boolean readCustomers(List<String> errorLogs) {
-        File customerFile = new File(SystemConfig.CUSTOMERS_CSV_PATH);
-        try (Scanner scanner = new Scanner(customerFile)) {
-            scanner.nextLine(); // Skip the header line.
-            String[] data;
-            int line = 0;
+    private boolean readEntities(String filePath, BiFunction<String[], Integer, String> entityParser, List<String> logs) {
+        logs.add("Read from file: " + filePath);
+        try (Scanner scanner = new Scanner(new File(filePath))) {
+            scanner.nextLine(); // Skip the header
+            int lineNum = 1;
+            int count = 0;
             while (scanner.hasNextLine()) {
-                line++;
-                data = scanner.nextLine().split(SystemConfig.CSV_DELIMITER);
-
-                // Validate data length and corresponding type.
-                if ((data.length == 3 && !"H".equals(data[2])) || (data.length == 4 && !"D".equals(data[2]))) {
-                    errorLogs.add("Incorrect data length or type at line " + line);
-                    continue;
-                }
-
-                // Validate customer ID.
-                if (CustomerValidation.isInvalidId(data[0]) || customerManager.getOne(data[0]) != null) {
-                    errorLogs.add("Invalid or duplicate 'Customer ID' at line " + line);
-                    continue;
-                }
-
-                Customer newCustomer;
-                if ("D".equals(data[2])) {  // Handling for dependents.
-                    if (CustomerValidation.isInvalidId(data[3])) {
-                        errorLogs.add("Invalid 'Policy Holder ID' for dependent at line " + line);
-                        continue;
-                    }
-                    PolicyHolder policyHolder = customerManager.getPolicyHolder(data[3]);
-                    if (policyHolder == null) {
-                        errorLogs.add("'Policy Holder' is not found for dependent at line " + line);
-                        continue;
-                    }
-                    newCustomer = new Dependent(data[0], data[1], policyHolder);
-                    policyHolder.addDependents(newCustomer);
-                } else {  // Handling for policy holders.
-                    newCustomer = new PolicyHolder(data[0], data[1]);
-                }
-
-                // Add new customer to the manager and only add dependent to policy holder if add is successful.
-                customerManager.add(newCustomer);
+                String[] data = scanner.nextLine().split(SystemConfig.CSV_DELIMITER);
+                String parseError = entityParser.apply(data, lineNum);
+                if (parseError != null) {
+                    logs.add("\t" + parseError);
+                } else count++;
+                lineNum++;
             }
+            logs.add("Successfully read " + count + (count > 1 ? " lines." : " line."));
             return true;
         } catch (FileNotFoundException e) {
+            logs.add("Failed to read from file: " + filePath);
             return false;
         }
     }
+
+    private String parseAndAddCustomer(String[] data, int lineNum) {
+        if (data.length < 3 || data.length > 4) {
+            return "Line " + lineNum + ": Incorrect number of fields.";
+        }
+
+        String id = data[0];
+        String name = data[1];
+        String type = data[2];
+        String policyHolderId = data.length == 4 ? data[3] : null;
+
+        if (Validation.isInvalidCustomerId(id)) {
+            return "Line " + lineNum + ": Invalid customer ID.";
+        }
+
+        if (Validation.isInvalidCustomerName(name)) {
+            return "Line " + lineNum + ": Customer name is empty.";
+        }
+
+        if (Validation.isValidCustomerType(type)) {
+            return "Line " + lineNum + ": Invalid customer type.";
+        }
+
+        Customer newCustomer;
+        if ("D".equals(type)) {
+            if (Validation.isInvalidCustomerId(policyHolderId)) {
+                return "Line " + lineNum + ": Invalid policy holder ID for dependent.";
+            }
+            PolicyHolder policyHolder = customerService.getPolicyHolder(policyHolderId);
+            if (policyHolder == null) {
+                return "Line " + lineNum + ": Policy holder does not exist.";
+            }
+            newCustomer = new Dependent(id, name, policyHolder);
+        } else {
+            newCustomer = new PolicyHolder(id, name);
+        }
+
+        if (!customerService.add(newCustomer)) {
+            return "Line " + lineNum + ": Failed to add customer to the service.";
+        }
+
+        return null;
+    }
+
+
+    private String parseAndAddCard(String[] data, int lineNum) {
+        if (data.length != 4) {
+            return "Line " + lineNum + ": Incorrect number of fields.";
+        }
+
+        String cardId = data[0];
+        String holderId = data[1];
+        String cardOwner = data[2];
+        Date expirationDate = Converter.parseDate(data[3]);
+
+        if (Validation.isInvalidCardId(cardId)) {
+            return "Line " + lineNum + ": Invalid card ID.";
+        }
+        if (Validation.isInvalidCustomerId(holderId)) {
+            return "Line " + lineNum + ": Invalid customer ID.";
+        }
+        if (expirationDate == null) {
+            return "Line " + lineNum + ": Invalid expiration date.";
+        }
+
+        Customer cardHolder = customerService.getOne(holderId);
+        if (cardHolder == null) {
+            return "Line " + lineNum + ": Customer not found.";
+        }
+        if (cardHolder.getInsuranceCard() != null) {
+            return "Line " + lineNum + ": Customer already has an insurance card.";
+        }
+
+        InsuranceCard card = new InsuranceCard(cardId, cardHolder, cardOwner, expirationDate);
+        if (!cardService.add(card)) {
+            return "Line " + lineNum + ": Failed to add insurance card.";
+        }
+
+        return null;
+    }
+
+
+    private String parseAndAddClaim(String[] data, int lineNum) {
+        if (data.length != 8) {
+            return "Line " + lineNum + ": Incorrect number of fields.";
+        }
+
+        String claimId = data[0];
+        Date claimDate = Converter.parseDate(data[1]);
+        String customerId = data[2];
+        Date examDate = Converter.parseDate(data[3]);
+        String[] documentArray = data[4].split(SystemConfig.LIST_DELIMITER);
+        double amount = Converter.parseDouble(data[5]);
+        Status status = Status.parse(data[6]);
+        String bankingInfo = data[7];
+
+        if (Validation.isInvalidClaimId(claimId)) {
+            return "Line " + lineNum + ": Invalid claim ID.";
+        }
+        if (claimDate == null || examDate == null) {
+            return "Line " + lineNum + ": Invalid date format.";
+        }
+        if (Validation.isInvalidCustomerId(customerId)) {
+            return "Line " + lineNum + ": Invalid customer ID.";
+        }
+        if (Validation.isInvalidAmount(amount)) {
+            return "Line " + lineNum + ": Invalid amount.";
+        }
+        if (status == null) {
+            return "Line " + lineNum + ": Invalid status.";
+        }
+        if (Validation.isInvalidBankingInfo(bankingInfo)) {
+            return "Line " + lineNum + ": Invalid banking info.";
+        }
+
+        Customer insured = customerService.getOne(customerId);
+        if (insured == null) {
+            return "Line " + lineNum + ": Customer not found.";
+        }
+
+        TreeSet<String> documents = new TreeSet<>();
+        for (String docName : documentArray) {
+            documents.add(String.format("%s_%s_%s", claimId, insured.getInsuranceCard().getCardNumber(), docName));
+        }
+
+        Claim claim = new Claim(claimId, claimDate, insured, insured.getInsuranceCard().getCardNumber(), examDate, documents, amount, status, bankingInfo);
+        if (!claimService.add(claim)) {
+            return "Line " + lineNum + ": Failed to add claim.";
+        }
+
+        insured.addClaim(claim);
+        return null;
+    }
+
 
     @Override
-    public boolean readInsuranceCards(List<String> errorLogs) {
-        File cardFile = new File(SystemConfig.CARDS_CSV_PATH);
-        try (Scanner myReader = new Scanner(cardFile)) {
-            myReader.nextLine(); // Skip header
+    public List<String> saveToFiles() {
+        String customerTitle = "id,fullName,type,policyHolderId";
+        String cardTitle = "cardNumber,cardHolderId,policyOwner,expirationDate";
+        String claimTitle = "id,claimDate,insuredPersonId,examDate,documents,claimAmount,status,receiverBankingInfo";
 
-            String[] data;
-            int line = 0;
-            while (myReader.hasNextLine()) {
-                line++;
-                data = myReader.nextLine().split(SystemConfig.CSV_DELIMITER);
-
-                if (data.length != 4) {
-                    errorLogs.add("Incorrect data length at line " + line);
-                    continue;
-                }
-
-                if (!CardValidation.isIdValid(data[0]) || cardManager.getOne(data[0]) != null) {
-                    errorLogs.add("Invalid or duplicate 'Card ID' at line " + line);
-                    continue;
-                }
-
-                Customer cardHolder = customerManager.getOne(data[1]);
-                if (CustomerValidation.isInvalidId(data[1]) || cardHolder == null) {
-                    errorLogs.add("Invalid 'Customer ID' or customer is not exist at line " + line);
-                    continue;
-                }
-
-                Date expirationDate = Converter.parseDate(data[3]);
-                if (expirationDate == null) {
-                    errorLogs.add("Invalid 'Expiration Date' format at line " + line);
-                    continue;
-                }
-
-                InsuranceCard card = new InsuranceCard(data[0], cardHolder, data[2], expirationDate);
-                cardManager.add(card);
-                cardHolder.setInsuranceCard(card);
-            }
-            return true;
-        } catch (FileNotFoundException e) {
-            return false;
-        }
+        List<String> logs = new ArrayList<>();
+        if (writeEntities(SystemConfig.CUSTOMERS_CSV_PATH, customerTitle, customerService.getAll(), logs))
+            if (writeEntities(SystemConfig.CARDS_CSV_PATH, cardTitle, cardService.getAll(), logs))
+                writeEntities(SystemConfig.CLAIMS_CSV_PATH, claimTitle, claimService.getAll(), logs);
+            else
+                logs.add("Abort saving");
+        else
+            logs.add("Abort saving");
+        return logs;
     }
 
-    @Override
-    public boolean readClaims(List<String> errorLogs) {
-        File claimFile = new File(SystemConfig.CLAIMS_CSV_PATH);
-        try (Scanner scanner = new Scanner(claimFile)) {
-            scanner.nextLine(); // Skip the header line
-            String[] data;
-            int line = 0;
-            while (scanner.hasNextLine()) {
-                line++;
-                data = scanner.nextLine().split(SystemConfig.CSV_DELIMITER);
-
-                // Validate data length.
-                if (data.length != 8) {
-                    errorLogs.add("Incorrect data length at line " + line);
-                    continue;
-                }
-
-                // Validate claim ID.
-                if (ClaimValidation.isInvalidId(data[0]) || claimProcessManager.getOne(data[0]) != null) {
-                    errorLogs.add("Invalid or duplicate 'Claim ID' at line " + line);
-                    continue;
-                }
-
-                // Validate insured person ID.
-                Customer insuredPerson = customerManager.getOne(data[2]);
-                if (CustomerValidation.isInvalidId(data[2]) || insuredPerson == null) {
-                    errorLogs.add("Invalid 'Insured Person ID' or customer does not exist at line " + line);
-                    continue;
-                }
-
-                // check card info of insured person
-                if (insuredPerson.getInsuranceCard() == null) {
-                    errorLogs.add("The customer does not have card at line " + line);
-                    continue;
-                }
-                String cardNumber = insuredPerson.getInsuranceCard().getCardNumber();
-
-                // Validate dates and convert to Date objects
-                Date claimDate = Converter.parseDate(data[1]);
-                Date examDate = Converter.parseDate(data[3]);
-                if (claimDate == null || examDate == null) {
-                    errorLogs.add("Invalid date format at line " + line);
-                    continue;
-                }
-
-                double claimAmount = Converter.parseDouble(data[5]);
-                // Validate and parse claim amount.
-                if (ClaimValidation.isInvalidAmount(claimAmount)) {
-                    errorLogs.add("Invalid 'Claim Amount' at line " + line);
-                    continue;
-                }
-
-                // Validate status.
-                Status status = Status.parse(data[6]);
-                if (status == null) {
-                    errorLogs.add("Invalid 'Status' at line " + line);
-                    continue;
-                }
-
-                SortedSet<String> docs = getDocs(data, cardNumber);
-
-                if (ClaimValidation.isInvalidBankingInfo(data[7])) {
-                    errorLogs.add("Invalid 'Banking Info' at line " + line);
-                    continue;
-                }
-
-                // Create and add the claim.
-                Claim claim = new Claim(data[0], claimDate, insuredPerson, cardNumber, examDate, docs, claimAmount, status, data[7]);
-                claimProcessManager.add(claim);
-                insuredPerson.addClaim(claim);
-            }
-            return true;
-        } catch (FileNotFoundException e) {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean writeToFiles(List<String> errorLogs) {
-        boolean isSuccess = true;
-        isSuccess &= writeCustomersToFile(errorLogs);
-        isSuccess &= writeCardsToFile(errorLogs);
-        isSuccess &= writeClaimsToFile(errorLogs);
-        return isSuccess;
-    }
-
-    private boolean writeCustomersToFile(List<String> errorLogs) {
-        try (FileWriter writer = new FileWriter(SystemConfig.CUSTOMERS_CSV_PATH)) {
-            writer.write("id,fullName,type,policyHolderId\n");
-            for (Customer customer : customerManager.getAll()) {
-                if (customer instanceof Dependent) {
-                    writer.write(customer.getCustomerID() + SystemConfig.CSV_DELIMITER + customer.getFullName() + SystemConfig.CSV_DELIMITER +
-                            "D," + ((Dependent) customer).getPolicyHolder().getCustomerID() + "\n");
-                } else {
-                    writer.write(customer.getCustomerID() + SystemConfig.CSV_DELIMITER + customer.getFullName() + SystemConfig.CSV_DELIMITER + "P,\n");
+    private <T extends Formattable> boolean writeEntities(String filePath, String title, TreeSet<T> entities, List<String> logs) {
+        logs.add("Write to file: " + filePath);
+        try (FileWriter writer = new FileWriter(filePath)) {
+            writer.write(title + "\n");
+            int count = 0;
+            for (T e : entities) {
+                String entity = e.format();
+                try {
+                    writer.write(entity + "\n");
+                    count++;
+                } catch (Exception ex) {
+                    logs.add("\tFailed to write entity: " + entity);
                 }
             }
+            logs.add("Successfully wrote " + count + (count > 1 ? " entities." : " entity."));
             return true;
         } catch (IOException e) {
-            errorLogs.add("Failed to write to customers file");
+            logs.add("Failed to write to file: " + filePath);
             return false;
         }
     }
 
-    private boolean writeCardsToFile(List<String> errorLogs) {
-        try (FileWriter writer = new FileWriter(SystemConfig.CARDS_CSV_PATH)) {
-            writer.write("cardNumber,cardHolderId,policyOwner,expirationDate\n");  // Example header
-            for (InsuranceCard card : cardManager.getAll()) {
-                writer.write(card.getCardNumber() + SystemConfig.CSV_DELIMITER + card.getCardHolder().getCustomerID() +
-                        SystemConfig.CSV_DELIMITER + card.getPolicyOwner() + SystemConfig.CSV_DELIMITER + Converter.formatDate(card.getExpirationDate()) + "\n");
-            }
-            return true;
-        } catch (IOException e) {
-            errorLogs.add("Failed to write to cards file");
-            return false;
-        }
-    }
-
-    private boolean writeClaimsToFile(List<String> errorLogs) {
-        try (FileWriter writer = new FileWriter(SystemConfig.CLAIMS_CSV_PATH)) {
-            writer.write("id,claimDate,insuredPersonId,examDate,documents,claimAmount,status,receiverBankingInfo\n");  // Example header
-            for (Claim claim : claimProcessManager.getAll()) {
-                writer.write(claim.getId() + SystemConfig.CSV_DELIMITER +
-                        Converter.formatDate(claim.getClaimDate()) + SystemConfig.CSV_DELIMITER +
-                        claim.getInsuredPerson().getCustomerID() + SystemConfig.CSV_DELIMITER +
-                        Converter.formatDate(claim.getExamDate()) + SystemConfig.CSV_DELIMITER +
-                        String.join(SystemConfig.LIST_DELIMITER, claim.getDocuments()) + SystemConfig.CSV_DELIMITER +
-                        claim.getClaimAmount() + SystemConfig.CSV_DELIMITER +
-                        claim.getStatus().getCode() + SystemConfig.CSV_DELIMITER +
-                        claim.getReceiverBankingInfo() + "\n");
-            }
-            return true;
-        } catch (IOException e) {
-            errorLogs.add("Failed to write to claims file");
-            return false;
-        }
-    }
 }

@@ -1,11 +1,12 @@
 package model;
 
+import conf.SystemConfig;
 import utils.Converter;
 
 import java.util.Date;
 import java.util.SortedSet;
 
-public class Claim implements Comparable<Claim> {
+public class Claim implements Formattable, Comparable<Claim>, Identifiable {
     private final SortedSet<String> documents; //(with the format ClaimId_CardNumber_DocumentName.pdf)
     private final String id; //(with the format f-numbers; 10 numbers)
     private Date claimDate;
@@ -21,6 +22,7 @@ public class Claim implements Comparable<Claim> {
         this.id = id;
         this.claimDate = claimDate;
         this.insuredPerson = insuredPerson;
+        this.insuredPerson.addClaim(this);
         this.cardNumber = cardNumber;
         this.examDate = examDate;
         this.claimAmount = claimAmount;
@@ -128,5 +130,22 @@ public class Claim implements Comparable<Claim> {
     @Override
     public int compareTo(Claim o) {
         return this.id.compareTo(o.id);
+    }
+
+    @Override
+    public String format() {
+        return id + SystemConfig.CSV_DELIMITER +
+                Converter.formatDate(claimDate) + SystemConfig.CSV_DELIMITER +
+                insuredPerson.getCustomerID() + SystemConfig.CSV_DELIMITER +
+                Converter.formatDate(examDate) + SystemConfig.CSV_DELIMITER +
+                String.join(SystemConfig.LIST_DELIMITER, documents) + SystemConfig.CSV_DELIMITER +
+                claimAmount + SystemConfig.CSV_DELIMITER +
+                status.getCode() + SystemConfig.CSV_DELIMITER +
+                receiverBankingInfo;
+    }
+
+    @Override
+    public String getIdentifier() {
+        return this.cardNumber;
     }
 }

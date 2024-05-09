@@ -1,8 +1,8 @@
-package manager;
+package service;
 
 import model.Claim;
 
-import java.util.SortedSet;
+import java.util.Set;
 
 public interface ClaimProcessManager {
     boolean add(Claim claim);
@@ -13,5 +13,5 @@ public interface ClaimProcessManager {
 
     Claim getOne(String id);
 
-    SortedSet<Claim> getAll();
+    Set<Claim> getAll();
 }
