@@ -18,7 +18,7 @@ public class Validation {
      * @param amount The amount to validate.
      * @return true if the amount is valid, false otherwise.
      */
-    public static boolean isInvalidAmount(double amount) {
+    public static boolean isInvalidAmount(Double amount) {
         return Double.isNaN(amount) || amount < 0;
     }
 
@@ -68,5 +68,9 @@ public class Validation {
      */
     public static boolean isValidCustomerType(String type) {
         return "H".equals(type) || "D".equals(type);
+    }
+
+    public static boolean isInvalidClaimStatus(String status) {
+        return "H".equals(status) || "D".equals(status);
     }
 }

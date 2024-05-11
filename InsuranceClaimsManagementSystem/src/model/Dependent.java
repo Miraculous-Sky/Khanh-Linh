@@ -3,18 +3,18 @@ package model;
 import conf.SystemConfig;
 
 public class Dependent extends Customer {
-    private final PolicyHolder policyHolder;
+    private PolicyHolder policyHolder;
 
-    public Dependent(String customerID, String fullName, PolicyHolder policyHolder) {
+    public Dependent(String customerID, String fullName) {
         super(customerID, fullName);
-        this.policyHolder = policyHolder;
-        this.policyHolder.addDependents(this);
     }
 
     public PolicyHolder getPolicyHolder() {
         return policyHolder;
     }
-
+    public void setPolicyHolder(PolicyHolder policyHolder) {
+        this.policyHolder = policyHolder;
+    }
     @Override
     public String toString() {
         return getCustomerID() + ":" + getFullName();

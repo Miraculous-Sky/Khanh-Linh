@@ -22,7 +22,6 @@ public class Claim implements Formattable, Comparable<Claim>, Identifiable {
         this.id = id;
         this.claimDate = claimDate;
         this.insuredPerson = insuredPerson;
-        this.insuredPerson.addClaim(this);
         this.cardNumber = cardNumber;
         this.examDate = examDate;
         this.claimAmount = claimAmount;
@@ -146,6 +145,6 @@ public class Claim implements Formattable, Comparable<Claim>, Identifiable {
 
     @Override
     public String getIdentifier() {
-        return this.cardNumber;
+        return this.id;
     }
 }

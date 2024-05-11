@@ -1,21 +1,23 @@
 package view.cli;
 
+import model.Claim;
 import service.ClaimService;
+import utils.InputHelper;
+
+import java.util.Scanner;
 
 public class GetOneClaimCommand implements Command {
-    private ClaimService customerService;
+    private ClaimService claimService;
 
-    public GetOneClaimCommand(ClaimService customerService) {
-        this.customerService = customerService;
+    public GetOneClaimCommand(ClaimService claimService) {
+        this.claimService = claimService;
     }
 
     @Override
-    public void execute() {
-        String customerId = InputHelper.getString("Enter customer ID: ");
-        Optional<Customer> customer = customerService.getCustomerById(customerId);
-        customer.ifPresentOrElse(
-                c -> System.out.println("Customer details: " + c),
-                () -> System.out.println("Customer not found.")
-        );
+    public void execute(Scanner scanner) {
+        System.out.println("Retrieving a claim...");
+        String id = InputHelper.getExistedClaimId(scanner, false, claimService);
+        Claim customer = claimService.getOne(id);
+        System.out.println(customer);
     }
 }

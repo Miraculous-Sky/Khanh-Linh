@@ -14,7 +14,6 @@ public class InsuranceCard implements Identifiable, Formattable, Comparable<Insu
     public InsuranceCard(String cardNumber, Customer cardHolder, String policyOwner, Date expirationDate) {
         this.cardNumber = cardNumber;
         this.cardHolder = cardHolder;
-        this.cardHolder.setInsuranceCard(this);
         this.policyOwner = policyOwner;
         this.expirationDate = expirationDate;
     }

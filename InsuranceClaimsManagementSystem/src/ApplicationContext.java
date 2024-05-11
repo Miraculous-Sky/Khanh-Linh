@@ -18,7 +18,19 @@ public class ApplicationContext {
         customerService = new CustomerService(db.getCustomers());
         cardService = new CardService(db.getInsuranceCards());
         claimService = new ClaimService(db.getClaims());
-        commandFactory = new CommandFactory(claimService);
+        commandFactory = new CommandFactory(claimService, customerService);
+    }
+
+    public static void main(String[] args) {
+        ApplicationContext context = new ApplicationContext();
+        context.initialize();
+        context.startApplication();
+        context.endApplication();
+    }
+
+    private void endApplication() {
+        FileProcessing fileProcessing = new CsvFileProcessing(customerService, cardService, claimService);
+        fileProcessing.saveToFiles();
     }
 
     public void initialize() {
@@ -28,11 +40,5 @@ public class ApplicationContext {
 
     public void startApplication() {
         new CLI(customerService, claimService, commandFactory).start();
-    }
-
-    public static void main(String[] args) {
-        ApplicationContext context = new ApplicationContext();
-        context.initialize();
-        context.startApplication();
     }
 }

@@ -3,7 +3,6 @@ package service;
 import model.Identifiable;
 
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 public class Service<T extends Identifiable> {
     private final SortedSet<T> data;
