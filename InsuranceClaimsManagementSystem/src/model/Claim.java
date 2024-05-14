@@ -5,6 +5,7 @@ import utils.Converter;
 
 import java.util.Date;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 public class Claim implements Formattable, Comparable<Claim>, Identifiable {
     private final SortedSet<String> documents; //(with the format ClaimId_CardNumber_DocumentName.pdf)
@@ -137,7 +138,8 @@ public class Claim implements Formattable, Comparable<Claim>, Identifiable {
                 Converter.formatDate(claimDate) + SystemConfig.CSV_DELIMITER +
                 insuredPerson.getCustomerID() + SystemConfig.CSV_DELIMITER +
                 Converter.formatDate(examDate) + SystemConfig.CSV_DELIMITER +
-                String.join(SystemConfig.LIST_DELIMITER, documents) + SystemConfig.CSV_DELIMITER +
+                documents.stream().map(d -> d.replaceAll(".*_", ""))
+                        .collect(Collectors.joining(SystemConfig.LIST_DELIMITER)) + SystemConfig.CSV_DELIMITER +
                 claimAmount + SystemConfig.CSV_DELIMITER +
                 status.getCode() + SystemConfig.CSV_DELIMITER +
                 receiverBankingInfo;

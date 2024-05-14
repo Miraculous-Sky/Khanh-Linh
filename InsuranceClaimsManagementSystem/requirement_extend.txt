@@ -1,31 +1,27 @@
-You are developing an insurance claims management system. Besides enabling the users to manage,
-track, and process claims, we extend our system by adding a few roles with different responsibilities.
+
+You are developing an insurance claims management system. Besides enabling the users to manage, track, and process claims, we extend our system by adding a few roles with different responsibilities.
 
 Specifically, our system will have three different kinds of users: customer, provider, and system admin.
- The customers will be policy owners, policy holders, and dependents. They will be the main clients in our system,
- who will use the system to file and manage the claims. Those claims then will be processed by the providers,
- which are insurance surveyors and insurance managers. When a user files a claim, an option to upload the documents
- must be provided (as images). The documents then must be renamed following the specified format.
-  Also, to support the system, we will have ONE system admin who can help with all the updating and statistical operations.
+The customers will be policy owners, policyholders, and dependents. They will be the main clients in our system, who will use the system to file and manage the claims. Those claims then will be processed by the providers, which are insurance surveyors and insurance managers. When a user files a claim, an option to upload the documents must be provided (as images). The documents then must be renamed following the specified format.
+Also, to support the system, we will have ONE system admin who can help with all the updating and statistical operations.
 
-You can use your codes from the previous work as the starting point. However, as we implement login system now,
-a few more attributes need to be added.
+You can use your codes from the previous work as the starting point. However, as we implement a login system now, a few more attributes need to be added.
 
-After logging in, the functionalities will be available according to the role of the current user:
+After logging in, the functionalities will be available, according to the role of the current user:
 
-Policy Holders must be able to file/update/retrieve their claims and the claims of their dependents.
+PolicyHolders must be able to file/update/retrieve their claims and the claims of their dependents.
 They can also get and update their information or the information of their dependents.
-Due to security purpose, only phone/address/email/password can be updated).
+Due to security purpose, only phone/address/email/password can be updated.
 
 Dependents are less privileged. They can only retrieve their claims and their information.
 
-Policy Owners must be able to file/update/delete/retrieve the claims of their beneficiaries. Also, policy owners can add/update/remove/get their beneficiaries. Once a beneficiary is removed from a policy owner, that user should not be able to login anymore. In addition, policy owners should be able to calculate how much they have to pay yearly for the insurance providers (Assuming that dependents costs 60% of the rate of their policy holders, and all the policy holders of one policy owner share the same rate).
+Policy Owners must be able to file/update/delete/retrieve the claims of their beneficiaries. Also, policy owners can add/update/remove/get their beneficiaries. Once a beneficiary is removed from a policy owner, that user should not be able to log in anymore. In addition, policy owners should be able to calculate how much they have to pay yearly for the insurance providers. Assuming that dependents cost 60% of their policyholders' rate, and all the policyholders of one policy owner share the same rate.
 
 Insurance Surveyors can require more information from a claim or propose a claim to their managers. They can also retrieve all the claims and the customers with different filtering options.
 
 Insurance Managers will decide to approve or reject a proposed claim. Similar to insurance surveyors, they can also retrieve all the claims and the customers with different filtering options. As being the managers, they can retrieve the information of their insurance surveyors.
 
-The System Admin will be able to do all the CRUD operations with all the entities, except for claims they can only retrieve the information. Also, the admin must be able to sum up the successfully claimed amount with different parameters/filtering option).
+The System Admin will be able to do all the CRUD operations with all the entities, except for claims they can only retrieve the information. Also, the admin must be able to sum up the successfully claimed amount with different parameters/filtering option.
 
 Besides dependents, all other roles must be able to record the history of their actions. Also, the users should be able to get and update their information (Think about which attributes should be allowed to be updated).
 
