@@ -77,11 +77,10 @@ public class CsvFileProcessing implements FileProcessing {
             return "Line " + lineNum + ": Customer name is empty.";
         }
 
-        if (Validation.isValidCustomerType(type)) {
+        if (!Validation.isValidCustomerType(type)) {
             return "Line " + lineNum + ": Invalid customer type.";
         }
 
-        Customer newCustomer;
         if ("D".equals(type)) {
             if (Validation.isInvalidCustomerId(policyHolderId)) {
                 return "Line " + lineNum + ": Invalid policy holder ID for dependent.";
@@ -90,15 +89,18 @@ public class CsvFileProcessing implements FileProcessing {
             if (policyHolder == null) {
                 return "Line " + lineNum + ": Policy holder does not exist.";
             }
-            newCustomer = new Dependent(id, name, policyHolder);
+            Dependent dependent = new Dependent(id, name);
+            if (!customerService.add(dependent)) {
+                return "Line " + lineNum + ": Failed to add customer to the service.";
+            }
+            dependent.setPolicyHolder(policyHolder);
+            policyHolder.addDependents(dependent);
         } else {
-            newCustomer = new PolicyHolder(id, name);
+            PolicyHolder policyHolder = new PolicyHolder(id, name);
+            if (!customerService.add(policyHolder)) {
+                return "Line " + lineNum + ": Failed to add customer to the service.";
+            }
         }
-
-        if (!customerService.add(newCustomer)) {
-            return "Line " + lineNum + ": Failed to add customer to the service.";
-        }
-
         return null;
     }
 
@@ -136,6 +138,7 @@ public class CsvFileProcessing implements FileProcessing {
             return "Line " + lineNum + ": Failed to add insurance card.";
         }
 
+        cardHolder.setInsuranceCard(card);
         return null;
     }
 
@@ -147,10 +150,10 @@ public class CsvFileProcessing implements FileProcessing {
 
         String claimId = data[0];
         Date claimDate = Converter.parseDate(data[1]);
-        String customerId = data[2];
+        String insuredId = data[2];
         Date examDate = Converter.parseDate(data[3]);
-        String[] documentArray = data[4].split(SystemConfig.LIST_DELIMITER);
-        double amount = Converter.parseDouble(data[5]);
+        String[] documentArray = data[4].isBlank() ? null : data[4].split(SystemConfig.LIST_DELIMITER);
+        Double amount = Converter.parseDouble(data[5]);
         Status status = Status.parse(data[6]);
         String bankingInfo = data[7];
 
@@ -160,7 +163,7 @@ public class CsvFileProcessing implements FileProcessing {
         if (claimDate == null || examDate == null) {
             return "Line " + lineNum + ": Invalid date format.";
         }
-        if (Validation.isInvalidCustomerId(customerId)) {
+        if (Validation.isInvalidCustomerId(insuredId)) {
             return "Line " + lineNum + ": Invalid customer ID.";
         }
         if (Validation.isInvalidAmount(amount)) {
@@ -173,15 +176,16 @@ public class CsvFileProcessing implements FileProcessing {
             return "Line " + lineNum + ": Invalid banking info.";
         }
 
-        Customer insured = customerService.getOne(customerId);
+        Customer insured = customerService.getOne(insuredId);
         if (insured == null) {
             return "Line " + lineNum + ": Customer not found.";
         }
 
         TreeSet<String> documents = new TreeSet<>();
-        for (String docName : documentArray) {
-            documents.add(String.format("%s_%s_%s", claimId, insured.getInsuranceCard().getCardNumber(), docName));
-        }
+        if (documentArray != null)
+            for (String docName : documentArray) {
+                documents.add(String.format("%s_%s_%s", claimId, insured.getInsuranceCard().getCardNumber(), docName));
+            }
 
         Claim claim = new Claim(claimId, claimDate, insured, insured.getInsuranceCard().getCardNumber(), examDate, documents, amount, status, bankingInfo);
         if (!claimService.add(claim)) {
@@ -210,7 +214,7 @@ public class CsvFileProcessing implements FileProcessing {
         return logs;
     }
 
-    private <T extends Formattable> boolean writeEntities(String filePath, String title, TreeSet<T> entities, List<String> logs) {
+    private <T extends Formattable> boolean writeEntities(String filePath, String title, SortedSet<T> entities, List<String> logs) {
         logs.add("Write to file: " + filePath);
         try (FileWriter writer = new FileWriter(filePath)) {
             writer.write(title + "\n");

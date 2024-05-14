@@ -55,6 +55,9 @@ public abstract class Customer implements Formattable, Comparable<Customer>, Ide
     public void addClaim(Claim claim) {
         this.claims.add(claim);
     }
+    public void removeClaim(Claim claim) {
+        this.claims.remove(claim);
+    }
 
     @Override
     public int compareTo(Customer o) {

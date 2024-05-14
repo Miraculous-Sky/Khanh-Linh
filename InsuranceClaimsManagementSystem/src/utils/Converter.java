@@ -11,7 +11,11 @@ public class Converter {
     private static final DateFormat dateFormat = new SimpleDateFormat(SystemConfig.DATE_FORMAT);
 
     public static String formatDate(Date date) {
-        return dateFormat.format(date);
+        try{
+            return dateFormat.format(date);
+        } catch (Exception e){
+            return null;
+        }
     }
 
     public static Date parseDate(String dateString) {
@@ -22,7 +26,7 @@ public class Converter {
         }
     }
 
-    public static double parseDouble(String number) {
+    public static Double parseDouble(String number) {
         try {
             return Double.parseDouble(number);
         } catch (NumberFormatException e) {
